@@ -2,7 +2,7 @@ import pytube
 import requests
 from tkinter import *
 from tkinter import filedialog
-from PIL import Image, ImageTk  # Importer les modules Pillow pour l'image
+from PIL import Image, ImageTk 
 
 root = Tk()
 root.title("YouSave")
