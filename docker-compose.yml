@@ -1,0 +1,13 @@
+services:
+  youdloader:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    image: youdloader-web
+    container_name: youdloader
+    # Lié à la boucle locale : accessible depuis cette machine seulement.
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./telechargements:/telechargements
+    restart: unless-stopped

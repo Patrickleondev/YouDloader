@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="fr" data-theme="sombre">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YouDloader</title>
+<style>
+  :root{
+    --fond:#11151C; --carte:#1A202B; --champ:#232B38; --bordure:#2E3847;
+    --texte:#E7ECF3; --doux:#8B95A7; --accent:#0069D6; --accent-vif:#1E86F0;
+    --succes:#2BA36F; --erreur:#D85050;
+  }
+  [data-theme="clair"]{
+    --fond:#F4F6FA; --carte:#FFFFFF; --champ:#FFFFFF; --bordure:#D3DAE6;
+    --texte:#1B2430; --doux:#5F6B7D; --accent:#0069D6; --accent-vif:#0056B0;
+    --succes:#1C8355; --erreur:#B3261E;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--fond);color:var(--texte);
+       font:15px/1.5 "Segoe UI",system-ui,sans-serif}
+  .page{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+  header{display:flex;align-items:center;gap:14px;background:var(--carte);
+         border-radius:12px;padding:16px 18px;margin-bottom:18px}
+  header img{width:48px;height:48px;border-radius:8px}
+  h1{font-size:22px;margin:0}
+  .sous{color:var(--doux);font-size:13px;margin:2px 0 0}
+  .bascule{margin-left:auto;background:none;border:1px solid var(--bordure);
+           color:var(--doux);border-radius:8px;padding:8px 12px;cursor:pointer}
+  section{background:var(--carte);border-radius:12px;padding:18px;margin-bottom:16px}
+  label{display:block;font-size:12px;letter-spacing:.04em;color:var(--doux);
+        text-transform:uppercase;margin-bottom:6px}
+  textarea,input,select{width:100%;background:var(--champ);color:var(--texte);
+    border:1px solid var(--bordure);border-radius:8px;padding:10px;font:inherit}
+  textarea{min-height:84px;resize:vertical;font-family:ui-monospace,Consolas,monospace;font-size:13px}
+  .grille{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+  .rangee{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:14px}
+  .rangee label{text-transform:none;letter-spacing:0;font-size:14px;color:var(--texte);
+                margin:0;display:flex;align-items:center;gap:8px}
+  .rangee input[type=checkbox]{width:auto}
+  .boutons{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+  button{background:var(--champ);color:var(--texte);border:1px solid var(--bordure);
+         border-radius:8px;padding:11px 18px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.action{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  button.action:hover{background:var(--accent-vif)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .barre{height:10px;background:var(--champ);border-radius:999px;overflow:hidden;margin-top:14px}
+  .barre > i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+  .etat{color:var(--doux);font-size:13px;margin-top:8px;min-height:20px}
+  .journal{background:var(--champ);border-radius:8px;padding:12px;max-height:220px;
+           overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;
+           color:var(--doux);white-space:pre-wrap}
+  .erreur{color:var(--erreur)} .succes{color:var(--succes)}
+  ul.fichiers{list-style:none;margin:0;padding:0}
+  ul.fichiers li{display:flex;gap:10px;justify-content:space-between;padding:8px 0;
+                 border-bottom:1px solid var(--bordure);font-size:14px}
+  ul.fichiers a{color:var(--accent-vif);text-decoration:none}
+  .cache{display:none}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <img src="/static/logo96.png" alt="">
+    <div>
+      <h1>YouDloader</h1>
+      <p class="sous">Vidéos, playlists, pistes audio et extraits minutés</p>
+    </div>
+    <button class="bascule" id="btn-theme">Mode clair</button>
+  </header>
+
+  <section>
+    <label for="liens">Liens (un par ligne)</label>
+    <textarea id="liens" placeholder="https://youtu.be/..."></textarea>
+    <div class="boutons">
+      <button id="btn-analyser">Analyser</button>
+      <span class="etat" id="resume"></span>
+    </div>
+  </section>
+
+  <section>
+    <div class="grille">
+      <div>
+        <label for="mode">Récupérer</label>
+        <select id="mode">
+          <option value="video">Vidéo + son</option>
+          <option value="audio">Audio seul</option>
+        </select>
+      </div>
+      <div>
+        <label for="qualite">Qualité</label>
+        <select id="qualite"></select>
+      </div>
+      <div>
+        <label for="conteneur">Format</label>
+        <select id="conteneur"></select>
+      </div>
+      <div>
+        <label for="elements">Éléments de playlist</label>
+        <input id="elements" placeholder="tout — ou 1-5,8">
+      </div>
+    </div>
+
+    <div class="rangee">
+      <label><input type="checkbox" id="extrait"> Ne prendre qu'un passage</label>
+      <label>de <input id="debut" style="width:92px" placeholder="20:00" disabled></label>
+      <label>à <input id="fin" style="width:92px" placeholder="40:00" disabled></label>
+      <label><input type="checkbox" id="precise" checked> coupe précise (réencode)</label>
+    </div>
+    <div class="rangee">
+      <label><input type="checkbox" id="soustitres"> Sous-titres</label>
+      <label><input id="langue" value="fr" style="width:60px"></label>
+      <label><input type="checkbox" id="numeroter"> Numéroter dans l'ordre</label>
+    </div>
+
+    <div class="boutons">
+      <button class="action" id="btn-telecharger">Télécharger</button>
+    </div>
+    <div class="barre"><i id="jauge"></i></div>
+    <div class="etat" id="etat">Prêt.</div>
+  </section>
+
+  <section>
+    <label>Journal</label>
+    <div class="journal" id="journal"></div>
+  </section>
+
+  <section>
+    <label>Fichiers du serveur</label>
+    <ul class="fichiers" id="fichiers"></ul>
+  </section>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const HAUTEURS = [144, 240, 360, 480, 720, 1080, 1440, 2160];
+let analyse = null;
+
+function remplirChoix() {
+  const audio = $("mode").value === "audio";
+  $("conteneur").innerHTML = (audio ? ["m4a","mp3","opus","wav"] : ["mp4","mkv","webm"])
+    .map(c => `<option>${c}</option>`).join("");
+  const hauteurs = (analyse && analyse.hauteurs && analyse.hauteurs.length)
+    ? analyse.hauteurs : HAUTEURS;
+  $("qualite").innerHTML = audio
+    ? '<option value="">Meilleure</option>'
+    : hauteurs.map(h => `<option value="${h}"${h === 360 ? " selected" : ""}>${h}p</option>`)
+        .join("") + '<option value="">Meilleure</option>';
+  $("qualite").disabled = audio;
+}
+
+function ecrire(texte, classe = "") {
+  const j = $("journal");
+  j.innerHTML += `<div class="${classe}">${texte.replace(/</g, "&lt;")}</div>`;
+  j.scrollTop = j.scrollHeight;
+}
+
+function liens() {
+  return $("liens").value.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#"));
+}
+
+$("btn-theme").onclick = () => {
+  const clair = document.documentElement.dataset.theme === "clair";
+  document.documentElement.dataset.theme = clair ? "sombre" : "clair";
+  $("btn-theme").textContent = clair ? "Mode clair" : "Mode sombre";
+  localStorage.setItem("theme", document.documentElement.dataset.theme);
+};
+if (localStorage.getItem("theme")) {
+  document.documentElement.dataset.theme = localStorage.getItem("theme");
+  $("btn-theme").textContent =
+    document.documentElement.dataset.theme === "clair" ? "Mode sombre" : "Mode clair";
+}
+
+$("mode").onchange = remplirChoix;
+$("extrait").onchange = () => {
+  $("debut").disabled = $("fin").disabled = !$("extrait").checked;
+};
+
+$("btn-analyser").onclick = async () => {
+  const url = liens()[0];
+  if (!url) return;
+  $("resume").textContent = "Analyse...";
+  try {
+    const r = await fetch("/api/analyser", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({url})
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || "analyse impossible");
+    analyse = d;
+    $("resume").textContent = d.playlist
+      ? `Playlist : ${d.titre} — ${d.elements.length} vidéos — ${d.chaine}`
+      : `${d.titre} — ${Math.round((d.duree || 0) / 60)} min — ${d.chaine}`;
+    remplirChoix();
+  } catch (e) {
+    $("resume").textContent = "";
+    ecrire("[x] " + e.message, "erreur");
+  }
+};
+
+$("btn-telecharger").onclick = async () => {
+  const corps = {
+    urls: liens(),
+    audio_seul: $("mode").value === "audio",
+    hauteur: $("qualite").value ? parseInt($("qualite").value, 10) : null,
+    conteneur: $("conteneur").value,
+    sous_titres: $("soustitres").checked,
+    langue: $("langue").value || "fr",
+    debut: $("extrait").checked && $("debut").value ? $("debut").value : null,
+    fin: $("extrait").checked && $("fin").value ? $("fin").value : null,
+    coupe_precise: $("precise").checked,
+    numeroter: $("numeroter").checked,
+    elements: $("elements").value.trim()
+  };
+  if (!corps.urls.length) return;
+
+  $("btn-telecharger").disabled = true;
+  $("etat").textContent = "Téléchargement...";
+  try {
+    const r = await fetch("/api/telecharger", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(corps)
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || "demande refusée");
+    suivre(d.tache);
+  } catch (e) {
+    ecrire("[x] " + e.message, "erreur");
+    $("etat").textContent = "Échec.";
+    $("btn-telecharger").disabled = false;
+  }
+};
+
+function suivre(tache) {
+  const flux = new EventSource(`/api/suivi/${tache}`);
+  flux.onmessage = (evenement) => {
+    const m = JSON.parse(evenement.data);
+    if (m.type === "progres") {
+      $("jauge").style.width = (m.pct ?? 0) + "%";
+      $("etat").textContent = (m.titre || "") + (m.pct != null ? ` — ${m.pct} %` : " — en cours");
+    } else if (m.type === "fichier") {
+      ecrire("Fichier : " + m.nom);
+    } else if (m.type === "fin") {
+      flux.close();
+      $("btn-telecharger").disabled = false;
+      $("jauge").style.width = m.code === 0 ? "100%" : "0";
+      $("etat").textContent = m.code === 0 ? "Terminé." : "Terminé avec des erreurs.";
+      ecrire(m.code === 0 ? "--- Terminé." : "--- Au moins un lien a échoué.",
+             m.code === 0 ? "succes" : "erreur");
+      listerFichiers();
+    }
+  };
+  flux.onerror = () => { flux.close(); $("btn-telecharger").disabled = false; };
+}
+
+async function listerFichiers() {
+  const r = await fetch("/api/fichiers");
+  const fichiers = await r.json();
+  $("fichiers").innerHTML = fichiers.map(f =>
+    `<li><a href="/api/fichier/${encodeURI(f.nom)}">${f.nom.replace(/</g, "&lt;")}</a>
+     <span>${(f.taille / 1048576).toFixed(1)} Mo</span></li>`).join("")
+    || "<li>Aucun fichier pour l'instant.</li>";
+}
+
+remplirChoix();
+listerFichiers();
+</script>
+</body>
+</html>
