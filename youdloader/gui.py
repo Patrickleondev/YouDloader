@@ -17,9 +17,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from yt_dlp.utils import DownloadCancelled
 
-from . import core, ffmpeg_auto, theme
-
-VERSION = "2.0"
+from . import __version__, core, ffmpeg_auto, theme
 
 
 def activer_dpi() -> float:
@@ -90,7 +88,7 @@ class Application(tk.Tk):
         self.echelle = activer_dpi()
         super().__init__()
         self.reglages_demarrage = charger_config()
-        self.title(f"YouDloader {VERSION}")
+        self.title(f"YouDloader {__version__}")
         # Les polices sont en points : Tk doit savoir combien de pixels fait un point.
         self.tk.call("tk", "scaling", self.echelle * 96 / 72)
         self._dimensionner(1000, 760)

@@ -1,0 +1,55 @@
+# Construit YouDloader.exe et l'attache à la release, à chaque étiquette v*.
+#
+# ATTENTION : ce workflow ne démarre pas tant que la facturation du compte GitHub
+# est bloquée (depuis septembre 2026). Jusque-là, la publication se fait en local :
+#     python scripts/publier.py --publier
+# Le jour où le compte est débloqué, ce fichier fait le même travail tout seul.
+
+name: Construire l'exe
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Construire
+        run: python build_exe.py
+
+      - name: Calculer l'empreinte
+        run: |
+          $h = (Get-FileHash dist\YouDloader.exe -Algorithm SHA256).Hash.ToLower()
+          "$h  YouDloader.exe" | Out-File -Encoding utf8 dist\SHA256SUMS.txt
+          Get-Content dist\SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YouDloader-exe
+          path: |
+            dist/YouDloader.exe
+            dist/SHA256SUMS.txt
+
+      - name: Joindre à la release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/YouDloader.exe
+            dist/SHA256SUMS.txt

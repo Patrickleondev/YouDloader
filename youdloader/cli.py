@@ -13,12 +13,13 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import core, ffmpeg_auto
+from . import __version__, core, ffmpeg_auto
 
 
 def analyser_arguments(argv=None) -> argparse.Namespace:
     p = argparse.ArgumentParser(prog="youdloader", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--version", action="version", version=f"YouDloader {__version__}")
     p.add_argument("urls", nargs="*", help="vidéos, playlists ou chaînes")
     p.add_argument("-f", "--fichier", type=Path, help="fichier texte, une URL par ligne")
     p.add_argument("-o", "--sortie", type=Path, default=Path("telechargements"))
