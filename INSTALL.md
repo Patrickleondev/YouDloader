@@ -42,20 +42,33 @@ parce que leur façon de déballer le code en mémoire ressemble à celle de cer
 logiciels malveillants. Si ton antivirus met le fichier en quarantaine, l'empreinte
 ci-dessus est le bon moyen de trancher, puis une exception sur le fichier.
 
-### ffmpeg
+### ffmpeg et Node, installés par l'application
 
-ffmpeg est nécessaire pour trois choses : fusionner l'image et le son (YouTube les sert
-séparément au-dessus de 360p), convertir l'audio, et découper un extrait.
+Deux programmes sont nécessaires, et l'exe ne les contient pas, pour rester léger :
 
-L'application le cherche d'abord sur la machine. S'il manque, un bandeau le signale en
-haut de la fenêtre et l'outil peut le télécharger lui-même dans
-`%LOCALAPPDATA%\YouDloader\bin`. Rien n'est écrit ailleurs, aucun droit administrateur
-n'est demandé, et le désinstaller revient à supprimer ce dossier.
+- **ffmpeg** colle le son à l'image (YouTube les sert séparément au-dessus de 360p),
+  convertit l'audio et découpe les extraits ;
+- **Node** exécute le JavaScript que YouTube impose désormais. Sans lui, YouTube ne
+  livre qu'une partie des formats, et souvent aucun qui contienne le son.
 
-Pour l'installer à la main, au choix :
+Au premier lancement, l'application cherche les deux sur la machine (Node doit être en
+version 22 au moins). S'il en manque un, elle **propose de le télécharger et de
+l'installer tout de suite** : ffmpeg depuis gyan.dev, Node depuis nodejs.org, 116 Mo en
+tout. La barre du bas suit la progression. Si tu refuses, un bouton **Installer** reste
+en haut de la fenêtre, et la question revient au moment de télécharger.
+
+Tout va dans `%LOCALAPPDATA%\YouDloader\bin` : rien n'est écrit ailleurs, aucun droit
+administrateur n'est demandé, et les désinstaller revient à supprimer ce dossier.
+
+Si tu télécharges quand même sans eux, YouDloader ne prend que des fichiers qui ont déjà
+le son, quitte à baisser la qualité. Avant cette version, on obtenait une vidéo muette
+et un `.m4a` à côté.
+
+Pour les installer à la main, au choix :
 
 ```powershell
 winget install Gyan.FFmpeg
+winget install OpenJS.NodeJS.LTS
 ```
 
 ### Où vont les fichiers
@@ -64,7 +77,7 @@ winget install Gyan.FFmpeg
 |---|---|
 | Vidéos téléchargées | le dossier choisi dans la fenêtre, `%USERPROFILE%\Videos\YouDloader` par défaut |
 | Réglages mémorisés | `%APPDATA%\YouDloader\config.json` |
-| ffmpeg installé par l'outil | `%LOCALAPPDATA%\YouDloader\bin` |
+| ffmpeg et Node installés par l'outil | `%LOCALAPPDATA%\YouDloader\bin` |
 
 Pour tout désinstaller : supprimer l'exe et ces deux dossiers.
 
@@ -136,7 +149,7 @@ venv\Scripts\python -m youdloader.cli URL
 venv\Scripts\python -m youdloader.cli URL --de 20 --a 40      # 20e à 40e minute
 venv\Scripts\python -m youdloader.cli URL --audio --format mp3
 venv\Scripts\python -m youdloader.cli -f liens.txt -o "D:\Cours" -n -s
-venv\Scripts\python -m youdloader.cli --installer-ffmpeg
+venv\Scripts\python -m youdloader.cli --installer-prerequis   # ffmpeg et Node, si absents
 ```
 
 Fabriquer l'exécutable :
@@ -151,8 +164,13 @@ Le résultat est dans `dist\YouDloader.exe`.
 
 ## Quand ça ne marche pas
 
-**« ffmpeg introuvable » alors qu'il est installé.** Il n'est pas dans le `PATH`. Ouvre
-un nouveau terminal après l'installation, ou laisse l'outil installer sa propre copie.
+**« ffmpeg introuvable » ou « Node introuvable » alors qu'il est installé.** Il n'est pas
+dans le `PATH`, ou Node est plus ancien que la version 22. Ouvre un nouveau terminal
+après l'installation, ou clique sur **Installer** pour que l'outil pose sa propre copie.
+
+**La vidéo n'a pas de son, et un `.m4a` traîne à côté.** C'était le comportement des
+versions 2.0 sans ffmpeg. Passe à la 2.1 : elle propose d'installer ffmpeg, et sans lui
+elle ne prend que des fichiers qui contiennent déjà le son.
 
 **Une vidéo YouTube échoue avec une erreur d'extraction.** YouTube change régulièrement,
 et yt-dlp suit. Mets-le à jour :

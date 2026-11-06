@@ -81,9 +81,10 @@ def installer(progres=None, annulation=None) -> Path:
 
     for nom_source, url in SOURCES_WINDOWS:
         try:
-            archive = _telecharger(url, nom_source, progres, annulation)
+            archive = telecharger_archive(url, nom_source, progres, annulation,
+                                          "youdloader_ffmpeg.zip")
             try:
-                _extraire(archive, cible, progres)
+                extraire(archive, cible, {_nom(b) for b in BINAIRES}, progres, "ffmpeg")
             finally:
                 archive.unlink(missing_ok=True)
             ffmpeg = cible / _nom("ffmpeg")
@@ -98,8 +99,9 @@ def installer(progres=None, annulation=None) -> Path:
     raise EchecInstallation("Aucune source n'a abouti.\n" + "\n".join(erreurs))
 
 
-def _telecharger(url: str, nom_source: str, progres, annulation) -> Path:
-    destination = Path(tempfile.gettempdir()) / "youdloader_ffmpeg.zip"
+def telecharger_archive(url: str, nom_source: str, progres, annulation, nom_fichier: str) -> Path:
+    """Télécharge une archive dans le dossier temporaire. Sert aussi pour Node."""
+    destination = Path(tempfile.gettempdir()) / nom_fichier
     requete = urllib.request.Request(url, headers={"User-Agent": "YouDloader"})
     with urllib.request.urlopen(requete, timeout=60) as reponse, open(destination, "wb") as sortie:
         total = int(reponse.headers.get("Content-Length") or 0)
@@ -113,15 +115,14 @@ def _telecharger(url: str, nom_source: str, progres, annulation) -> Path:
             sortie.write(morceau)
             recus += len(morceau)
             if progres:
-                progres(recus, total, f"Téléchargement de ffmpeg depuis {nom_source}")
+                progres(recus, total, f"Téléchargement depuis {nom_source}")
     return destination
 
 
-def _extraire(archive: Path, cible: Path, progres) -> None:
-    """Ne sort que ffmpeg et ffprobe : l'archive contient aussi des docs et des exemples."""
+def extraire(archive: Path, cible: Path, voulus: set[str], progres, quoi: str) -> None:
+    """Ne sort que les exécutables voulus : l'archive contient aussi des docs et des exemples."""
     if progres:
-        progres(0, 0, "Extraction de ffmpeg")
-    voulus = {_nom(b) for b in BINAIRES}
+        progres(0, 0, f"Extraction de {quoi}")
     with zipfile.ZipFile(archive) as zip_:
         for membre in zip_.namelist():
             nom = Path(membre).name

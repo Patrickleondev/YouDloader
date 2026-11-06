@@ -59,7 +59,7 @@ venv\Scripts\python -m youdloader.cli URL_PLAYLIST -q 480 -n -s
 venv\Scripts\python -m youdloader.cli URL --audio --format mp3
 venv\Scripts\python -m youdloader.cli URL --de 20 --a 40        # 20e à 40e minute
 venv\Scripts\python -m youdloader.cli -f liens.txt -o "D:\Cours"
-venv\Scripts\python -m youdloader.cli --installer-ffmpeg
+venv\Scripts\python -m youdloader.cli --installer-prerequis   # ffmpeg et Node
 ```
 
 Les durées s'écrivent `20` (minutes), `20:30` (min:sec) ou `1:20:30` (h:min:sec).
@@ -72,6 +72,7 @@ youdloader/
   gui.py          interface Tkinter
   theme.py        palettes sombre et claire
   ffmpeg_auto.py  détection et installation automatique de ffmpeg
+  node_auto.py    détection et installation automatique de Node
   cli.py          ligne de commande
 web/              serveur FastAPI, page unique, image Docker
 scripts/          publication des versions
@@ -97,12 +98,19 @@ version complète serait ignorée ensuite.
 précédente, jusqu'à une dizaine de secondes avant la borne demandée. L'option de coupe
 rapide reste là quand la précision n'importe pas.
 
-**ffmpeg téléchargé à la demande plutôt qu'embarqué.** L'exe reste à 26 Mo au lieu de
-140. S'il manque, l'application installe sa propre copie dans `%LOCALAPPDATA%`, sans
-droits administrateur et sans toucher au reste du système.
+**ffmpeg et Node téléchargés à la demande plutôt qu'embarqués.** L'exe reste à 26 Mo
+au lieu de 250. Au premier lancement, s'il en manque un, l'application propose de
+l'installer tout de suite : sa propre copie dans `%LOCALAPPDATA%\YouDloader\bin`, depuis
+les sites officiels, sans droits administrateur et sans toucher au reste du système.
 
 **Node est nécessaire.** YouTube exige d'exécuter du JavaScript pour livrer ses flux ;
-yt-dlp délègue à un moteur externe. L'image Docker l'embarque.
+yt-dlp délègue à un moteur externe. Sans lui, il ne reste qu'une partie des formats,
+souvent aucun qui contienne le son. L'image Docker l'embarque.
+
+**Sans ffmpeg, jamais de vidéo muette.** Le format `bv*+ba` prend la meilleure image et
+le meilleur son, puis demande à ffmpeg de les coller. Sans ffmpeg, yt-dlp laissait les
+deux fichiers séparés : une vidéo muette et un `.m4a`. Le moteur demande alors un format
+qui contient déjà les deux (`b`), quitte à baisser la qualité.
 
 **Le port du serveur web est lié à `127.0.0.1`.** Ce service n'a ni comptes ni quotas :
 exposé sur Internet, il deviendrait un relais de téléchargement ouvert à tous.

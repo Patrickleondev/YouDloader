@@ -6,6 +6,7 @@ Exemples :
     python -m youdloader.cli URL --audio --format mp3
     python -m youdloader.cli URL --de 20 --a 40        (de la 20e à la 40e minute)
     python -m youdloader.cli -f liens.txt -o "D:\\Cours"
+    python -m youdloader.cli --installer-prerequis      (ffmpeg et Node, si absents)
 """
 from __future__ import annotations
 
@@ -13,7 +14,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import __version__, core, ffmpeg_auto
+from . import __version__, core, ffmpeg_auto, node_auto
 
 
 def analyser_arguments(argv=None) -> argparse.Namespace:
@@ -42,6 +43,8 @@ def analyser_arguments(argv=None) -> argparse.Namespace:
     p.add_argument("--miniature", action="store_true", help="intègre la miniature au fichier")
     p.add_argument("--installer-ffmpeg", action="store_true",
                    help="télécharge ffmpeg dans le dossier de l'outil puis quitte")
+    p.add_argument("--installer-prerequis", action="store_true",
+                   help="télécharge ce qui manque parmi ffmpeg et Node, puis quitte")
     return p.parse_args(argv)
 
 
@@ -73,13 +76,25 @@ def construire_reglages(args: argparse.Namespace) -> core.Reglages:
 def main(argv=None) -> int:
     args = analyser_arguments(argv)
 
-    if args.installer_ffmpeg:
+    if args.installer_ffmpeg or args.installer_prerequis:
         def montrer(recus, total, message):
             part = f"{recus / 1e6:.0f}/{total / 1e6:.0f} Mo" if total else f"{recus / 1e6:.0f} Mo"
             print(f"\r{message} : {part}   ", end="", flush=True)
-        chemin = ffmpeg_auto.installer(progres=montrer)
-        print(f"\nffmpeg installé : {chemin}")
+        installeurs = {"ffmpeg": ffmpeg_auto.installer, "node": node_auto.installer}
+        a_faire = ["ffmpeg"] if args.installer_ffmpeg else core.prerequis_manquants()
+        if not a_faire:
+            print("ffmpeg et Node sont déjà là.")
+        for nom in a_faire:
+            chemin = installeurs[nom](progres=montrer)
+            print(f"\n{nom} installé : {chemin}")
         return 0
+
+    manquants = core.prerequis_manquants()
+    if manquants:
+        print(f"Attention : {' et '.join(manquants)} introuvable(s). Sans eux, les vidéos se "
+              "limitent aux fichiers qui ont déjà le son, ou échouent.\n"
+              "Pour les installer : python -m youdloader.cli --installer-prerequis",
+              file=sys.stderr)
 
     try:
         reglages = construire_reglages(args)

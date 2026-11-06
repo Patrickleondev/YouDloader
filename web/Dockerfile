@@ -3,8 +3,12 @@
 FROM python:3.13-slim
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg nodejs \
+    && apt-get install -y --no-install-recommends ffmpeg libstdc++6 \
     && rm -rf /var/lib/apt/lists/*
+
+# Le paquet nodejs de Debian est en version 20, et yt-dlp exige Node 22 au moins :
+# il ignorerait ce Node-là. On prend le binaire de l'image officielle.
+COPY --from=node:24-slim /usr/local/bin/node /usr/local/bin/node
 
 WORKDIR /app
 COPY web/requirements.txt ./requirements.txt

@@ -12,7 +12,7 @@ from pathlib import Path
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadCancelled, download_range_func
 
-from . import ffmpeg_auto
+from . import ffmpeg_auto, node_auto
 
 # Qualités proposées quand on n'a pas analysé la vidéo.
 HAUTEURS = [144, 240, 360, 480, 720, 1080, 1440, 2160]
@@ -98,6 +98,16 @@ def ffmpeg_present() -> bool:
     return ffmpeg_auto.present()
 
 
+def prerequis_manquants() -> list[str]:
+    """Ce qu'il faut installer pour que tout marche : "ffmpeg", "node", ou rien."""
+    manquants = []
+    if not ffmpeg_present():
+        manquants.append("ffmpeg")
+    if not node_auto.present():
+        manquants.append("node")
+    return manquants
+
+
 def modele_nom(r: Reglages) -> str:
     """Modèle de nom de fichier.
 
@@ -115,47 +125,53 @@ def construire(r: Reglages, *, hooks_progres=(), hooks_post=(), logger=None) -> 
     """Traduit les réglages en dictionnaire d'options yt-dlp."""
     r.verifier()
     postprocesseurs = []
+    # Sans ffmpeg, yt-dlp ne peut ni fusionner ni convertir. Avec "bv*+ba", il
+    # téléchargerait alors l'image et le son dans deux fichiers séparés : une vidéo
+    # muette à côté d'un .m4a. On se limite donc aux fichiers qui ont déjà les deux.
+    ffmpeg = ffmpeg_present()
 
     if r.audio_seul:
         fmt = "ba[ext=m4a]/ba/b"
         tri = ["abr"]
-        postprocesseurs.append({
-            "key": "FFmpegExtractAudio",
-            "preferredcodec": r.conteneur,
-            "preferredquality": r.qualite_audio,
-        })
+        if ffmpeg:
+            postprocesseurs.append({
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": r.conteneur,
+                "preferredquality": r.qualite_audio,
+            })
     else:
-        fmt = "bv*+ba/b"
+        # "b" seul = un format qui contient image ET son (souvent 360p au plus).
+        fmt = "bv*+ba/b" if ffmpeg else "b[acodec!=none][vcodec!=none]/b"
         # res:360 prend la plus haute résolution <= 360 et, s'il n'y en a aucune,
         # la plus basse au-dessus. Un filtre height<=360 échouerait dans ce cas.
         tri = ["res", "ext:mp4:m4a"] if r.hauteur is None else [f"res:{r.hauteur}", "ext:mp4:m4a"]
 
-    if r.sous_titres:
-        postprocesseurs.append({"key": "FFmpegSubtitlesConvertor", "format": "srt"})
-    if r.metadonnees:
-        postprocesseurs.append({"key": "FFmpegMetadata"})
-    if r.miniature:
-        postprocesseurs.append({"key": "EmbedThumbnail"})
+    if ffmpeg:
+        if r.sous_titres:
+            postprocesseurs.append({"key": "FFmpegSubtitlesConvertor", "format": "srt"})
+        if r.metadonnees:
+            postprocesseurs.append({"key": "FFmpegMetadata"})
+        if r.miniature:
+            postprocesseurs.append({"key": "EmbedThumbnail"})
 
     o = {
         "format": fmt,
         "format_sort": tri,
         "outtmpl": str(r.dossier / modele_nom(r)),
-        "paths": {"home": str(r.dossier)},
         "postprocessors": postprocesseurs,
         "ignoreerrors": "only_download",
-        "js_runtimes": {"node": {}},
+        "js_runtimes": node_auto.options_ytdlp(),
         "noprogress": True,
         "quiet": True,
         "no_warnings": False,
         "progress_hooks": list(hooks_progres),
         "postprocessor_hooks": list(hooks_post),
-        "writethumbnail": r.miniature,
+        "writethumbnail": r.miniature and ffmpeg,
     }
     emplacement = ffmpeg_auto.emplacement_pour_ytdlp()
     if emplacement:
         o["ffmpeg_location"] = emplacement
-    if not r.audio_seul:
+    if not r.audio_seul and ffmpeg:
         o["merge_output_format"] = r.conteneur
 
     if r.sous_titres:
@@ -189,7 +205,7 @@ def analyser(url: str, *, navigateur: str = "", logger=None) -> dict:
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
-        "js_runtimes": {"node": {}},
+        "js_runtimes": node_auto.options_ytdlp(),
         # Dans une playlist, on ne détaille que la première vidéo : le reste à plat,
         # sinon analyser 50 liens prendrait plusieurs minutes.
         "extract_flat": "in_playlist",

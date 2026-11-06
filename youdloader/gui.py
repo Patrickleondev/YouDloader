@@ -17,7 +17,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from yt_dlp.utils import DownloadCancelled
 
-from . import __version__, core, ffmpeg_auto, theme
+from . import __version__, core, ffmpeg_auto, node_auto, theme
 
 
 def activer_dpi() -> float:
@@ -110,6 +110,8 @@ class Application(tk.Tk):
         self._construire()
         self._rafraichir_etats()
         self.after(120, self._pomper)
+        # Après l'affichage de la fenêtre, pour que la question ne s'ouvre pas dans le vide.
+        self.after(400, self._proposer_prerequis)
         self.protocol("WM_DELETE_WINDOW", self._fermer)
 
     def _dimensionner(self, largeur: int, hauteur: int) -> None:
@@ -162,10 +164,12 @@ class Application(tk.Tk):
         self.bouton_theme.grid(row=0, column=3, sticky="ne", padx=(12, 0))
         self._libeller_theme()
 
-        if not core.ffmpeg_present():
-            ttk.Label(cadre, text="ffmpeg introuvable : fusion, conversion audio et\n"
-                                  "extraits indisponibles", style="Alerte.TLabel",
-                      justify="right").grid(row=0, column=2, rowspan=2, sticky="e")
+        self.alerte = ttk.Label(cadre, style="Alerte.TLabel", justify="right")
+        self.alerte.grid(row=0, column=2, sticky="e")
+        self.bouton_prerequis = ttk.Button(cadre, text="Installer", style="Discret.TButton",
+                                           command=self._installer_prerequis)
+        self.bouton_prerequis.grid(row=1, column=2, sticky="e")
+        self._montrer_prerequis()
 
     def _zone_liens(self) -> None:
         cadre = ttk.LabelFrame(self, text=" LIENS  (un par ligne : vidéo, playlist, chaîne) ",
@@ -384,6 +388,69 @@ class Application(tk.Tk):
             toile.configure(background=self.p.fond)
         self._libeller_theme()
 
+    # ------------------------------------------------------------------ prérequis
+
+    def _montrer_prerequis(self) -> None:
+        """Affiche ce qui manque dans l'en-tête, avec le bouton pour l'installer."""
+        manquants = core.prerequis_manquants()
+        if manquants:
+            noms = {"ffmpeg": "ffmpeg", "node": "Node"}
+            self.alerte.configure(text=" et ".join(noms[m] for m in manquants) + " introuvable"
+                                  + ("s" if len(manquants) > 1 else ""))
+            self.alerte.grid()
+            self.bouton_prerequis.grid()
+        else:
+            self.alerte.grid_remove()
+            self.bouton_prerequis.grid_remove()
+
+    def _proposer_prerequis(self) -> None:
+        """Au démarrage : propose d'installer ce qui manque, une fois par lancement."""
+        manquants = core.prerequis_manquants()
+        if not manquants or sys.platform != "win32":
+            return
+        if messagebox.askyesno("Prérequis manquants", self._texte_prerequis(manquants)
+                               + "\n\nLes installer maintenant ?", parent=self):
+            self._installer_prerequis()
+
+    @staticmethod
+    def _texte_prerequis(manquants: list[str]) -> str:
+        roles = {
+            "ffmpeg": "ffmpeg (80 Mo) : colle le son à l'image, convertit l'audio, "
+                      "découpe les extraits. Sans lui, YouDloader se limite aux fichiers "
+                      "qui contiennent déjà le son, souvent 360p au mieux.",
+            "node": "Node (36 Mo) : exécute le JavaScript que YouTube impose. Sans lui, "
+                    "YouTube ne donne qu'une partie des formats, souvent aucun avec le son.",
+        }
+        return ("Il manque :\n\n" + "\n\n".join("- " + roles[m] for m in manquants)
+                + "\n\nYouDloader les télécharge depuis leurs sites officiels et les range "
+                  "dans son propre dossier (%LOCALAPPDATA%\\YouDloader), sans droits "
+                  "administrateur et sans toucher au reste du système.")
+
+    def _installer_prerequis(self) -> None:
+        if self.travail is not None and self.travail.is_alive():
+            return
+        manquants = core.prerequis_manquants()
+        self.annulation.clear()
+        self._ecrire("--- Installation des prérequis : " + ", ".join(manquants))
+        self.etat.configure(text="Installation des prérequis...")
+        self._demarrer(self._travail_installation, manquants)
+
+    def _travail_installation(self, manquants: list[str]) -> None:
+        def progres(recus, total, message):
+            self.file.put(("installation", (recus, total, message)))
+
+        installeurs = {"ffmpeg": ffmpeg_auto.installer, "node": node_auto.installer}
+        erreurs = []
+        for nom in manquants:
+            try:
+                chemin = installeurs[nom](progres=progres, annulation=self.annulation)
+                self.file.put(("journal", f"{nom} installé : {chemin}"))
+            except Exception as erreur:  # on tente quand même le suivant
+                if self.annulation.is_set():
+                    break
+                erreurs.append(f"{nom} : {erreur}")
+        self.file.put(("installe", erreurs))
+
     # ------------------------------------------------------------------ petites actions
 
     def _coller(self) -> None:
@@ -535,6 +602,18 @@ class Application(tk.Tk):
         )
 
     def _lancer_telechargement(self) -> None:
+        manquants = core.prerequis_manquants()
+        if manquants and sys.platform == "win32":
+            reponse = messagebox.askyesnocancel(
+                "Prérequis manquants", self._texte_prerequis(manquants)
+                + "\n\nOui : les installer d'abord, puis relancer le téléchargement.\n"
+                  "Non : télécharger quand même, en se limitant aux fichiers qui ont déjà "
+                  "le son (qualité réduite, voire aucun format sans Node).", parent=self)
+            if reponse is None:
+                return
+            if reponse:
+                self._installer_prerequis()
+                return
         try:
             r = self._rassembler()
             options = core.construire(r, hooks_progres=[self._hook], hooks_post=[self._hook_post],
@@ -617,6 +696,14 @@ class Application(tk.Tk):
                     self.etat.configure(text="Analyse terminée.")
                 elif genre == "fini":
                     self._terminer(charge)
+                elif genre == "installation":
+                    recus, total, message = charge
+                    if total:
+                        self.barre.configure(mode="determinate", value=recus / total * 100)
+                        message += f" : {recus / 1e6:.0f}/{total / 1e6:.0f} Mo"
+                    self.etat.configure(text=message)
+                elif genre == "installe":
+                    self._fin_installation(charge)
                 elif genre == "echec":
                     self.barre.stop()
                     self.barre.configure(mode="determinate", value=0)
@@ -668,6 +755,22 @@ class Application(tk.Tk):
         else:
             self.etat.configure(text="Terminé avec des erreurs. Voir le journal.")
             self._ecrire("--- Terminé, mais au moins un lien a échoué.", "erreur")
+
+    def _fin_installation(self, erreurs: list[str]) -> None:
+        self.barre.configure(mode="determinate", value=0)
+        self._montrer_prerequis()
+        if self.annulation.is_set():
+            self.etat.configure(text="Installation annulée.")
+        elif erreurs:
+            self.etat.configure(text="Installation incomplète. Voir le journal.")
+            for e in erreurs:
+                self._ecrire("[x] " + e, "erreur")
+            messagebox.showerror("Installation incomplète", "\n\n".join(erreurs)
+                                 + "\n\nVérifie la connexion, puis réessaie avec le bouton "
+                                   "Installer en haut de la fenêtre.", parent=self)
+        else:
+            self.etat.configure(text="Prérequis installés. Prêt.")
+            self._ecrire("--- Prérequis installés.", "succes")
 
     # ------------------------------------------------------------------ fermeture
 
