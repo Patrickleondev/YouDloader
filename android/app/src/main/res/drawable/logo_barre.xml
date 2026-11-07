@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Le logo (256 px) ramené à 40 dp dans la barre du haut. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:width="40dp"
+        android:height="40dp"
+        android:drawable="@drawable/logo" />
+</layer-list>

@@ -1,0 +1,18 @@
+<resources>
+    <!-- DayNight : l'appli suit le thème clair ou sombre du téléphone (couleurs dans values-night). -->
+    <style name="Theme.YouDloader" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorOnPrimary">@color/sur_accent</item>
+        <item name="colorPrimaryContainer">@color/accent_doux</item>
+        <item name="colorOnPrimaryContainer">@color/sur_accent_doux</item>
+        <item name="colorSecondaryContainer">@color/accent_doux</item>
+        <item name="colorOnSecondaryContainer">@color/sur_accent_doux</item>
+        <item name="android:colorBackground">@color/fond</item>
+        <item name="colorSurface">@color/fond</item>
+        <item name="colorSurfaceContainerLow">@color/carte</item>
+        <item name="colorOnSurface">@color/texte</item>
+        <item name="colorOnSurfaceVariant">@color/doux</item>
+        <item name="colorOutline">@color/bordure</item>
+        <item name="colorError">@color/erreur</item>
+    </style>
+</resources>

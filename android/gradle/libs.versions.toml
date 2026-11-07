@@ -1,0 +1,14 @@
+[versions]
+agp = "9.0.1"
+appcompat = "1.8.0"
+material = "1.14.0"
+youtubedl = "0.18.1"
+
+[libraries]
+appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+youtubedl-library = { group = "io.github.junkfood02.youtubedl-android", name = "library", version.ref = "youtubedl" }
+youtubedl-ffmpeg = { group = "io.github.junkfood02.youtubedl-android", name = "ffmpeg", version.ref = "youtubedl" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }

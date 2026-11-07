@@ -37,6 +37,11 @@ Le détail, les avertissements de Windows et les pannes courantes sont dans
 Windows affiche un avertissement SmartScreen parce que l'exe n'est pas signé :
 *Informations complémentaires*, puis *Exécuter quand même*.
 
+**Android.** Prendre l'APK dans les Releases : `arm64-v8a` pour presque tous les
+téléphones depuis 2017, `armeabi-v7a` pour les plus anciens. Autoriser l'installation
+depuis le navigateur ou l'appli Fichiers quand Android le demande. Depuis YouTube,
+**Partager > YouDloader** remplit le lien tout seul.
+
 **Dans le navigateur, via Docker.**
 
 ```bash
@@ -75,6 +80,7 @@ youdloader/
   node_auto.py    détection et installation automatique de Node
   cli.py          ligne de commande
 web/              serveur FastAPI, page unique, image Docker
+android/          application Android (Java), mêmes réglages que core.py
 scripts/          publication des versions
 bureau.py         point d'entrée de l'application de bureau
 build_exe.py      fabrication de l'exécutable
@@ -115,6 +121,37 @@ qui contient déjà les deux (`b`), quitte à baisser la qualité.
 **Le port du serveur web est lié à `127.0.0.1`.** Ce service n'a ni comptes ni quotas :
 exposé sur Internet, il deviendrait un relais de téléchargement ouvert à tous.
 
+## L'application Android
+
+Android n'a ni Python, ni Node, ni ffmpeg, et depuis Android 10 une appli ne peut plus
+exécuter un programme qu'elle a téléchargé. L'APK s'appuie donc sur
+[youtubedl-android](https://github.com/yausername/youtubedl-android) 0.18.1, qui embarque
+Python, yt-dlp, ffmpeg et QuickJS sous forme de bibliothèques natives, extraites à
+l'installation (`extractNativeLibs`). QuickJS joue le rôle de Node pour le JavaScript
+de YouTube.
+
+- `Reglages.java` traduit les choix en options yt-dlp, comme `construire()` dans
+  `core.py`. Seule différence : à résolution égale, H.264 passe avant AV1, que beaucoup
+  de téléphones d'avant 2022 ne décodent pas.
+- `TelechargementService.java` lance yt-dlp dans un service au premier plan (type
+  `dataSync`) : le téléchargement continue écran éteint, avec une notification et un
+  bouton Annuler.
+- yt-dlp travaille dans le dossier privé de l'appli, puis `Publication.java` copie chaque
+  fichier fini dans `Téléchargements/YouDloader` (MediaStore, sans permission depuis
+  Android 10).
+- yt-dlp se met à jour tout seul une fois par jour depuis ses releases GitHub, et à la
+  demande par le menu.
+- Un APK par architecture : Python et ffmpeg pèsent environ 51 Mo chacune, un APK
+  universel dépasserait 200 Mo.
+
+Construire : ouvrir `android/` dans Android Studio, ou
+`android\gradlew -p android assembleRelease`. Les APK sortent dans
+`android/app/build/outputs/apk/release/`.
+
+Testé sur l'émulateur (Android 17) : partage d'un lien depuis une autre appli,
+vidéo 360p (H.264 et AAC, image et son vérifiés avec ffprobe), extrait de 9 s en m4a et
+en mp3, service au premier plan pendant que l'appli est en arrière-plan.
+
 ## Publier une version
 
 Voir **[DEPLOIEMENT.md](DEPLOIEMENT.md)**. En résumé : `scripts/publier.py` vérifie que
@@ -126,10 +163,6 @@ facturation du compte est bloquée. La publication se fait donc depuis la machin
 
 ## Ce qui reste à faire
 
-- **Application Android.** Le dossier `android/` est vide. Point dur identifié : yt-dlp a
-  besoin d'un moteur JavaScript pour YouTube, et Android n'a ni Node ni Deno. Depuis
-  Android 10, une application ne peut pas non plus exécuter un binaire qu'elle a
-  téléchargé : ffmpeg devra être embarqué dans l'APK.
 - File d'attente et reprise sélective dans l'interface de bureau.
 - Conversion du son en mp3 sans passer par un réencodage quand la source le permet.
 

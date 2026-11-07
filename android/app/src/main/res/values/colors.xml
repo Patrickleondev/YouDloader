@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mêmes couleurs que youdloader/theme.py : le bleu vient du logo de 2024 (#0069D6). -->
+<resources>
+    <color name="accent">#0069D6</color>
+    <color name="sur_accent">#FFFFFF</color>
+    <color name="accent_doux">#D7E6FA</color>
+    <color name="sur_accent_doux">#00285A</color>
+    <color name="fond">#F4F6FA</color>
+    <color name="carte">#FFFFFF</color>
+    <color name="texte">#1B2430</color>
+    <color name="doux">#5F6B7D</color>
+    <color name="bordure">#D3DAE6</color>
+    <color name="erreur">#B3261E</color>
+</resources>

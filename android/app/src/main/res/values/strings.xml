@@ -1,0 +1,42 @@
+<resources>
+    <string name="app_name" translatable="false">YouDloader</string>
+    <string name="sous_titre">Vidéos, playlists, pistes audio et extraits minutés</string>
+
+    <string name="liens">Liens (un par ligne : vidéo, playlist, chaîne)</string>
+    <string name="coller">Coller</string>
+    <string name="vider">Vider</string>
+
+    <string name="recuperer">Récupérer</string>
+    <string name="video_son">Vidéo + son</string>
+    <string name="audio_seul">Audio seul</string>
+    <string name="qualite">Qualité</string>
+    <string name="format">Format du fichier</string>
+    <string name="meilleure">Meilleure</string>
+
+    <string name="extrait">Ne prendre qu\'un passage</string>
+    <string name="de">De</string>
+    <string name="a">À</string>
+    <string name="aide_duree">20 (minutes), 20:30 ou 1:20:30</string>
+    <string name="coupe_precise">Coupe précise à la seconde (réencode, plus lent)</string>
+    <string name="sous_titres">Sous-titres en .srt</string>
+    <string name="langue">Langue</string>
+    <string name="numeroter">Numéroter dans l\'ordre des liens</string>
+    <string name="elements">Éléments de playlist (ex. 1-5,8), vide = tous</string>
+
+    <string name="telecharger">Télécharger</string>
+    <string name="annuler">Annuler</string>
+    <string name="pret">Prêt.</string>
+    <string name="destination">Les fichiers arrivent dans Téléchargements/YouDloader.</string>
+    <string name="journal">Journal</string>
+
+    <string name="menu_maj">Mettre à jour yt-dlp</string>
+    <string name="menu_vider">Effacer les fichiers inachevés</string>
+    <string name="menu_versions">Versions</string>
+
+    <string name="notif_titre">YouDloader</string>
+    <string name="notif_fini">Téléchargement terminé</string>
+    <string name="canal_nom">Téléchargements</string>
+    <string name="canal_description">Progression des téléchargements en cours</string>
+
+    <string name="permission_stockage">Sans la permission de stockage, Android 8 et 9 n\'autorisent pas l\'enregistrement dans Téléchargements.</string>
+</resources>

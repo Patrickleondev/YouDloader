@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Palette sombre de youdloader/theme.py. L'accent est éclairci pour rester lisible sur fond noir. -->
+<resources>
+    <color name="accent">#5AA6FF</color>
+    <color name="sur_accent">#002F66</color>
+    <color name="accent_doux">#1E3A5F</color>
+    <color name="sur_accent_doux">#D7E6FA</color>
+    <color name="fond">#11151C</color>
+    <color name="carte">#1A202B</color>
+    <color name="texte">#E7ECF3</color>
+    <color name="doux">#8B95A7</color>
+    <color name="bordure">#2E3847</color>
+    <color name="erreur">#F2B8B5</color>
+</resources>
